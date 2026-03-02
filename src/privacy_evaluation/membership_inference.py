@@ -15,9 +15,18 @@ import argparse
 from pathlib import Path
 
 
+def _documents_dir(corpus_path: str) -> str:
+    """If corpus_path is a corpus root with documents/ subdir, return path to documents."""
+    p = Path(corpus_path)
+    if p.is_dir() and (p / "documents").is_dir():
+        return str(p / "documents")
+    return corpus_path
+
+
 def load_corpus(corpus_path: str) -> List[str]:
     """Load corpus texts from JSON or directory of text files."""
     texts = []
+    corpus_path = _documents_dir(corpus_path)
     
     if os.path.isdir(corpus_path):
         # Load from directory of text files

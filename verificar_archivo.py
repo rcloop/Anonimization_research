@@ -41,3 +41,4 @@ for filename in files_to_check:
     else:
         print(f"\n{filename}: NO ENCONTRADO")
 
+

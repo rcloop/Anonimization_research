@@ -178,11 +178,18 @@ def evaluate_canary_insertion(
     total_canaries = sum(len(v) for v in canaries.values())
     print(f"Generated {total_canaries} canary strings across {len(canaries)} entity types")
     
+    def _documents_dir(path: str) -> str:
+        p = Path(path)
+        if p.is_dir() and (p / "documents").is_dir():
+            return str(p / "documents")
+        return path
+
     # Load original corpus
     print("Loading original corpus...")
     original_texts = []
-    if os.path.isdir(original_corpus_path):
-        for txt_file in Path(original_corpus_path).glob("*.txt"):
+    orig_dir = _documents_dir(original_corpus_path)
+    if os.path.isdir(orig_dir):
+        for txt_file in Path(orig_dir).glob("*.txt"):
             with open(txt_file, 'r', encoding='utf-8') as f:
                 original_texts.append(f.read().strip())
     elif original_corpus_path.endswith('.json'):
@@ -216,10 +223,10 @@ def evaluate_canary_insertion(
     # Load generated corpus
     print("Loading generated corpus...")
     generated_texts = []
-    
-    if generated_corpus_path and os.path.exists(generated_corpus_path):
-        if os.path.isdir(generated_corpus_path):
-            for txt_file in Path(generated_corpus_path).glob("*.txt"):
+    gen_dir = _documents_dir(generated_corpus_path) if generated_corpus_path else None
+    if gen_dir and os.path.exists(gen_dir):
+        if os.path.isdir(gen_dir):
+            for txt_file in Path(gen_dir).glob("*.txt"):
                 with open(txt_file, 'r', encoding='utf-8') as f:
                     generated_texts.append(f.read().strip())
         elif generated_corpus_path.endswith('.json'):

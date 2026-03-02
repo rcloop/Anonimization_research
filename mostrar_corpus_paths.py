@@ -10,6 +10,7 @@ print("=" * 80)
 # Rutas desde count_centro_salud_alamos.py
 print("\n1. Rutas en count_centro_salud_alamos.py (en orden de prioridad):")
 possible_paths = [
+    Path("corpus_repo/corpus_v1/documents"),
     Path("documentos finales corpus"),
     Path("C:/Users/Usuario/Anonimization_research/documentos finales corpus"),
     Path("corpus_repo/corpus/documents"),
@@ -30,6 +31,7 @@ for i, path in enumerate(possible_paths, 1):
 # Rutas absolutas disponibles
 print("\n2. Rutas absolutas disponibles:")
 abs_paths = [
+    Path("C:/Users/Usuario/Anonimization_research/corpus_repo/corpus_v1/documents"),
     Path("C:/Users/Usuario/Anonimization_research/corpus_repo/corpus/documents"),
     Path("C:/Users/Usuario/Anonimization_research/documentos finales corpus"),
 ]

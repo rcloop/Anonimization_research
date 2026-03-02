@@ -1,6 +1,7 @@
 # Corpus repository (too large for git)
 corpus_repo/
 corpus/
+corpus_repo_old_backup/
 *.txt
 !requirements.txt
 

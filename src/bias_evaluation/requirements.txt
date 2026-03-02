@@ -1,0 +1,5 @@
+# Standard requirements for bias evaluation suite
+numpy>=1.21.0,<3.0.0
+scipy>=1.9.0
+matplotlib>=3.7.0
+

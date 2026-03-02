@@ -22,6 +22,14 @@ import hashlib
 from meddocan_label_mapping import map_meddocan_to_phi
 
 
+def _documents_dir(corpus_path: str) -> str:
+    """If corpus_path is a corpus root with documents/ subdir, return path to documents."""
+    p = Path(corpus_path)
+    if p.is_dir() and (p / "documents").is_dir():
+        return str(p / "documents")
+    return corpus_path
+
+
 def load_corpus(corpus_path: str) -> List[Tuple[str, str, str]]:
     """
     Load corpus texts.
@@ -30,6 +38,7 @@ def load_corpus(corpus_path: str) -> List[Tuple[str, str, str]]:
         List of (text, filename, doc_id) tuples
     """
     texts = []
+    corpus_path = _documents_dir(corpus_path)
     
     if os.path.isdir(corpus_path):
         for file_path in Path(corpus_path).glob("*.txt"):
@@ -53,9 +62,11 @@ def load_corpus(corpus_path: str) -> List[Tuple[str, str, str]]:
 def extract_phi_entities(text: str, annotations: Dict = None) -> Dict[str, List[str]]:
     """
     Extract PHI entities (names, IDs, dates, etc.) from text.
+    When annotations are present, only annotation-based extraction is used for PHI
+    to avoid double-counting and misclassification (e.g. locations captured as "person" by regex).
     
     Returns:
-        Dictionary mapping entity types to lists of entity values
+        Dictionary mapping entity types to lists of entity values (unique per document).
     """
     entities = {
         'person': [],
@@ -66,6 +77,7 @@ def extract_phi_entities(text: str, annotations: Dict = None) -> Dict[str, List[
         'phone': [],
         'email': []
     }
+    has_annotation_entities = False
     
     # Extract from annotations if available
     if annotations:
@@ -79,41 +91,13 @@ def extract_phi_entities(text: str, annotations: Dict = None) -> Dict[str, List[
                         
                         if not value:
                             continue
+                        has_annotation_entities = True
                         
                         # Map MEDDOCAN label to generic PHI category
                         phi_category = map_meddocan_to_phi(entity_type)
                         
-                        if phi_category == 'person' and value:
-                            entities['person'].append(value)
-                        elif phi_category == 'date' and value:
-                            entities['date'].append(value)
-                        elif phi_category == 'location' and value:
-                            entities['location'].append(value)
-                        elif phi_category == 'id' and value:
-                            entities['id'].append(value)
-                        elif phi_category == 'age' and value:
-                            entities['age'].append(value)
-                        elif phi_category == 'phone' and value:
-                            entities['phone'].append(value)
-                        elif phi_category == 'email' and value:
-                            entities['email'].append(value)
-                        
-                        # Fallback: also check for common patterns in label name
-                        entity_type_upper = entity_type.upper()
-                        if ('PERSON' in entity_type_upper or 'NOMBRE' in entity_type_upper) and value:
-                            entities['person'].append(value)
-                        elif ('DATE' in entity_type_upper or 'FECHA' in entity_type_upper) and value:
-                            entities['date'].append(value)
-                        elif ('LOCATION' in entity_type_upper or 'LOC' in entity_type_upper or 'PAIS' in entity_type_upper or 'CIUDAD' in entity_type_upper or 'TERRITORIO' in entity_type_upper) and value:
-                            entities['location'].append(value)
-                        elif 'ID' in entity_type_upper and value:
-                            entities['id'].append(value)
-                        elif ('AGE' in entity_type_upper or 'EDAD' in entity_type_upper) and value:
-                            entities['age'].append(value)
-                        elif ('PHONE' in entity_type_upper or 'TELEFONO' in entity_type_upper or 'FAX' in entity_type_upper) and value:
-                            entities['phone'].append(value)
-                        elif ('EMAIL' in entity_type_upper or 'CORREO' in entity_type_upper) and value:
-                            entities['email'].append(value)
+                        if phi_category in entities:
+                            entities[phi_category].append(value)
             
             # Handle format with "entities" array
             ann_entities = annotations.get('entities', [])
@@ -124,43 +108,21 @@ def extract_phi_entities(text: str, annotations: Dict = None) -> Dict[str, List[
                     
                     if not value:
                         continue
+                    has_annotation_entities = True
                     
                     # Map MEDDOCAN label to generic PHI category
                     phi_category = map_meddocan_to_phi(label)
                     
-                    if phi_category == 'person' and value:
-                        entities['person'].append(value)
-                    elif phi_category == 'date' and value:
-                        entities['date'].append(value)
-                    elif phi_category == 'location' and value:
-                        entities['location'].append(value)
-                    elif phi_category == 'id' and value:
-                        entities['id'].append(value)
-                    elif phi_category == 'age' and value:
-                        entities['age'].append(value)
-                    elif phi_category == 'phone' and value:
-                        entities['phone'].append(value)
-                    elif phi_category == 'email' and value:
-                        entities['email'].append(value)
-                    
-                    # Fallback: also check for common patterns in label name
-                    label_upper = label.upper()
-                    if ('PERSON' in label_upper or 'NOMBRE' in label_upper) and value:
-                        entities['person'].append(value)
-                    elif ('DATE' in label_upper or 'FECHA' in label_upper) and value:
-                        entities['date'].append(value)
-                    elif ('LOCATION' in label_upper or 'LOC' in label_upper or 'PAIS' in label_upper or 'CIUDAD' in label_upper or 'TERRITORIO' in label_upper) and value:
-                        entities['location'].append(value)
-                    elif 'ID' in label_upper and value:
-                        entities['id'].append(value)
-                    elif ('AGE' in label_upper or 'EDAD' in label_upper) and value:
-                        entities['age'].append(value)
-                    elif ('PHONE' in label_upper or 'TELEFONO' in label_upper or 'FAX' in label_upper) and value:
-                        entities['phone'].append(value)
-                    elif ('EMAIL' in label_upper or 'CORREO' in label_upper) and value:
-                        entities['email'].append(value)
+                    if phi_category in entities:
+                        entities[phi_category].append(value)
     
-    # Pattern-based extraction (fallback)
+    # Pattern-based extraction (fallback only when no annotations, to avoid double count and noise)
+    if has_annotation_entities:
+        for key in entities:
+            entities[key] = list(set(entities[key]))
+        return entities
+    
+    # Regex fallback when document has no annotations
     # Person names (capitalized words, 2-4 words)
     person_pattern = r'\b([A-ZÁÉÍÓÚÑ][a-záéíóúñ]+(?:\s+[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+){1,3})\b'
     persons = re.findall(person_pattern, text)
@@ -339,7 +301,7 @@ def evaluate_memorization(
             with open(annotations_path, 'r', encoding='utf-8') as f:
                 annotations = json.load(f)
     
-    # Also create a mapping from corpus item IDs to annotations
+    # Map document IDs to annotations (doc_id = .txt stem; annotation keys = id from JSON or filename stem)
     corpus_annotations = {}
     if annotations_path and os.path.exists(annotations_path) and os.path.isdir(annotations_path):
         if corpus_path.endswith('.json'):
@@ -351,11 +313,15 @@ def evaluate_memorization(
                             doc_id = item.get('id', '')
                             if doc_id and doc_id in annotations:
                                 corpus_annotations[doc_id] = annotations[doc_id]
+        else:
+            # Corpus is a directory (e.g. documents/*.txt); use all annotations, lookup by doc_id in exact_similarity_search
+            corpus_annotations = annotations
     else:
         corpus_annotations = annotations
     
     results = {
         'corpus_size': len(texts),
+        '_occurrences_meaning': 'occurrences = number of documents that contain the entity at least once (not total mentions)',
         'exact_duplicates': {},
         'semantic_similarities': [],
         'memorization_risk': {}
@@ -383,7 +349,7 @@ def evaluate_memorization(
                 'top_repeated': [
                     {
                         'entity': entity,
-                        'occurrences': len(docs),
+                        'occurrences': len(docs),  # number of documents containing this entity (not total mentions)
                         'documents': docs[:3]  # Limit to first 3 docs
                     }
                     for entity, docs in sorted_repeated

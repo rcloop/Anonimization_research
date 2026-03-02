@@ -57,8 +57,9 @@ def count_centro_salud_alamos(corpus_path):
 
 
 if __name__ == "__main__":
-    # Buscar en "documentos finales corpus"
+    # Buscar en corpus_v1
     possible_paths = [
+        Path("corpus_repo/corpus_v1/documents"),
         Path("documentos finales corpus"),
         Path("C:/Users/Usuario/Anonimization_research/documentos finales corpus"),
         Path("corpus_repo/corpus/documents"),
