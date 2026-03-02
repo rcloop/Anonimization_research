@@ -140,4 +140,30 @@ Salida:
 - `bias_evaluation_results/institution_bias.json`
 - `bias_evaluation_results/institution_lorenz.png` (si `matplotlib` está instalado)
 
+## Métrica 1.6: Sesgo en diagnósticos/condiciones (si hay secciones clínicas)
+
+Extrae diagnósticos/condiciones desde `documents/*.txt` por heurística (headers tipo `Diagnóstico:` y frases tipo `diagnóstico de ...`).
+
+```powershell
+cd .\src\bias_evaluation
+.\venv\Scripts\Activate.ps1
+python .\diagnosis_condition_bias.py `
+  --documents_path "..\..\corpus_repo\corpus_v1\documents" `
+  --top_k 20 `
+  --make_plot
+```
+
+Si tienes una distribución de referencia (CSV/JSON `diagnosis->p`), añade:
+
+```powershell
+python .\diagnosis_condition_bias.py `
+  --documents_path "..\..\corpus_repo\corpus_v1\documents" `
+  --reference_path "..\..\ruta\ref_dx.json"
+```
+
+Salida:
+
+- `bias_evaluation_results/diagnosis_condition_bias.json`
+- `bias_evaluation_results/diagnosis_topk.png` (si `matplotlib` está instalado)
+
 
